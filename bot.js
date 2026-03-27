@@ -1,45 +1,154 @@
 require('dotenv').config()
 
-const TelegramBot = require('node-telegram-bot-api')
-const axios = require('axios')
-const fs = require('fs')
+const TelegramBot=require('node-telegram-bot-api')
+const axios=require('axios')
+const fs=require('fs')
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true })
+const TOKEN=process.env.BOT_TOKEN
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET
+const PAYSTACK_SECRET=process.env.PAYSTACK_SECRET
 
-const data = JSON.parse(fs.readFileSync("products.json"))
+const BTC=process.env.BTC_WALLET
+const ETH=process.env.ETH_WALLET
+const USDT=process.env.USDT_WALLET
 
-/* START MENU */
+const bot=new TelegramBot(TOKEN,{polling:true})
 
-bot.onText(/\/start/, (msg)=>{
+const books=JSON.parse(fs.readFileSync("books.json"))
 
-const chatId = msg.chat.id
+const categories={
+"Fiction":[
+"Literary Fiction",
+"Historical Fiction",
+"Mystery & Thrillers",
+"Romance",
+"Science Fiction & Fantasy"
+],
 
-let keyboard = data.categories.map(cat => [{
-text: cat.name,
-callback_data: "cat_" + cat.name
-}])
+"Non-Fiction":[
+"Biographies & Memoirs",
+"Business & Investing",
+"Cooking, Food & Wine",
+"Health, Fitness & Dieting",
+"Politics & Social Sciences"
+],
 
-bot.sendMessage(chatId,
-"📚 Welcome to the Digital Bookstore\n\nChoose a category:",
+"Children’s Books":[
+"Picture Books",
+"Chapter Books",
+"Young Adult"
+],
+
+"Academic & Professional":[],
+"Comics & Graphic Novels":[],
+"Religion & Spirituality":[],
+"Self-Help":[],
+"Travel":[],
+"Science & Nature":[]
+}
+
+bot.onText(/\/start/,msg=>{
+
+bot.sendMessage(msg.chat.id,
+`📚 Best Global Digital Bookstore
+
+Choose an option`,
 {
 reply_markup:{
-inline_keyboard: keyboard
+keyboard:[
+["📚 Browse Categories"],
+["🔎 Search Books"],
+["🔥 Best Sellers"]
+],
+resize_keyboard:true
 }
 })
 
 })
 
-/* PAYSTACK PAYMENT FUNCTION */
+bot.on("message",msg=>{
 
-async function createPayment(email, amount){
+const chatId=msg.chat.id
+const text=msg.text
 
-const response = await axios.post(
+if(text==="📚 Browse Categories"){
+
+let keyboard=Object.keys(categories).map(cat=>[cat])
+
+bot.sendMessage(chatId,"📚 Book Categories",{
+reply_markup:{
+keyboard:keyboard,
+resize_keyboard:true
+}
+})
+
+}
+
+if(categories[text]){
+
+const subs=categories[text]
+
+if(subs.length===0){
+
+bot.sendMessage(chatId,"No subcategories")
+
+return
+
+}
+
+let keyboard=subs.map(sub=>[sub])
+
+bot.sendMessage(chatId,
+`📚 ${text}`,{
+reply_markup:{
+keyboard:keyboard,
+resize_keyboard:true
+}
+})
+
+}
+
+let results=books.filter(b=>b.subcategory===text)
+
+results.forEach(book=>{
+
+bot.sendPhoto(chatId,book.cover,{
+caption:
+`📖 ${book.title}
+
+Category: ${book.category}
+Price: $${book.price}`,
+
+reply_markup:{
+inline_keyboard:[
+[
+{text:"💳 Paystack",callback_data:"pay_"+book.id},
+{text:"🪙 Crypto",callback_data:"crypto_"+book.id}
+]
+]
+}
+})
+
+})
+
+})
+
+bot.on("callback_query",async query=>{
+
+const chatId=query.message.chat.id
+const data=query.data
+
+if(data.startsWith("pay_")){
+
+const id=data.split("_")[1]
+
+const book=books.find(b=>b.id==id)
+
+const response=await axios.post(
 "https://api.paystack.co/transaction/initialize",
 {
-email: email,
-amount: amount * 100
+email:"customer@email.com",
+amount:book.price*100
 },
 {
 headers:{
@@ -48,92 +157,76 @@ Authorization:`Bearer ${PAYSTACK_SECRET}`,
 }
 })
 
-return response.data.data.authorization_url
-
-}
-
-/* BUTTON HANDLER */
-
-bot.on("callback_query", async (query)=>{
-
-const chatId = query.message.chat.id
-const dataText = query.data
-
-/* OPEN CATEGORY */
-
-if(dataText.startsWith("cat_")){
-
-const category = dataText.replace("cat_","")
-
-const cat = data.categories.find(c => c.name === category)
-
-if(!cat || cat.products.length === 0){
-
-bot.sendMessage(chatId,"No products yet in this category.")
-return
-
-}
-
-cat.products.forEach(p => {
+const link=response.data.data.authorization_url
 
 bot.sendMessage(chatId,
-`📚 ${p.name}
+`💳 Pay for ${book.title}
 
-💰 Price: $${p.price}
-
-Click BUY to pay and receive the product.`,
+Price: $${book.price}`,
 {
 reply_markup:{
 inline_keyboard:[
-[{text:"🛒 Buy", callback_data:"buy_"+p.id}]
+[
+{text:"Pay Now",url:link}
 ]
-}
-})
-
-})
-
-}
-
-/* BUY PRODUCT */
-
-if(dataText.startsWith("buy_")){
-
-const id = dataText.replace("buy_","")
-
-let product
-
-data.categories.forEach(cat=>{
-const found = cat.products.find(p => p.id === id)
-if(found) product = found
-})
-
-if(!product){
-bot.sendMessage(chatId,"Product not found.")
-return
-}
-
-/* CREATE PAYMENT LINK */
-
-const email = "customer@email.com"
-
-const paymentLink = await createPayment(email, product.price)
-
-bot.sendMessage(chatId,
-`💳 Pay for: ${product.name}
-
-Price: $${product.price}
-
-Click the button below to pay.`,
-{
-reply_markup:{
-inline_keyboard:[
-[{text:"💳 Pay Now", url: paymentLink}]
 ]
 }
 })
 
 }
 
+if(data.startsWith("crypto_")){
+
+const id=data.split("_")[1]
+
+const book=books.find(b=>b.id==id)
+
+bot.sendMessage(chatId,
+`🪙 Crypto Payment
+
+Send $${book.price} to:
+
+BTC
+${BTC}
+
+ETH
+${ETH}
+
+USDT
+${USDT}
+
+After payment send transaction hash.`)
+
+}
+
 })
 
-console.log("🚀 Digital Store Bot Running")
+bot.onText(/\/search (.+)/,(msg,match)=>{
+
+const chatId=msg.chat.id
+const query=match[1].toLowerCase()
+
+const results=books.filter(b=>
+b.title.toLowerCase().includes(query)
+)
+
+if(results.length===0){
+
+bot.sendMessage(chatId,"No books found")
+
+return
+
+}
+
+results.forEach(book=>{
+
+bot.sendMessage(chatId,
+`${book.title}
+
+Price $${book.price}`)
+
+})
+
+})
+
+console.log("📚 Bookstore bot running")
