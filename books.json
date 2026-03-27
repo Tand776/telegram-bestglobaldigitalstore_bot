@@ -1,0 +1,20 @@
+[
+{
+"id":1,
+"title":"The Man Who Broke Me",
+"category":"Fiction",
+"subcategory":"Romance",
+"price":10,
+"cover":"covers/cover1.jpg",
+"file":"books/sample1.pdf"
+},
+{
+"id":2,
+"title":"Herbal Medicine Secrets",
+"category":"Science & Nature",
+"subcategory":"Health, Fitness & Dieting",
+"price":12,
+"cover":"covers/cover2.jpg",
+"file":"books/sample2.pdf"
+}
+]
