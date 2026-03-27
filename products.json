@@ -1,0 +1,78 @@
+{
+  "categories": [
+    {
+      "name": "Spirituality and Religion",
+      "products": []
+    },
+    {
+      "name": "Recipes",
+      "products": []
+    },
+    {
+      "name": "Storybook for kids and children",
+      "products": []
+    },
+    {
+      "name": "Storybook for Adults",
+      "products": []
+    },
+    {
+      "name": "Audiobooks",
+      "products": [
+        {
+          "id": "a1",
+          "name": "Who Do You Trust Audiobook",
+          "price": 5,
+          "file": "products/who_do_you_trust.mp3"
+        }
+      ]
+    },
+    {
+      "name": "Medicinal books",
+      "products": []
+    },
+    {
+      "name": "Coloring books",
+      "products": []
+    },
+    {
+      "name": "Comic books",
+      "products": []
+    },
+    {
+      "name": "Pottery and Ceramics",
+      "products": []
+    },
+    {
+      "name": "Computing and Internet",
+      "products": []
+    },
+    {
+      "name": "Education books",
+      "products": [
+        {
+          "id": "b1",
+          "name": "The Word Search",
+          "price": 7,
+          "file": "products/word_search.pdf"
+        }
+      ]
+    },
+    {
+      "name": "Financial Books",
+      "products": []
+    },
+    {
+      "name": "Crypto Trading books",
+      "products": []
+    },
+    {
+      "name": "Forex Trading books",
+      "products": []
+    },
+    {
+      "name": "History Books",
+      "products": []
+    }
+  ]
+}
